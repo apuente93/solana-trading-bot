@@ -12,7 +12,7 @@ This project is an automated trading bot built to trade Solana-based tokens list
 
 ### Prerequisites
 - **Node.js**: Ensure you have Node.js installed. You can download it [here](https://nodejs.org/).
-- **Pump.fun API Key**: You’ll need an API key from Pump.fun to interact with their API. You can generate a free key [here](https://docs.api-pump.fun/general/getting-started) and add it to your `.env` file.
+- **Pump.fun API Key**: You’ll need an API key from Pump.fun to interact with their API. You can generate a free key [here](https://docs.api-pump.fun/reference/api-reference/generate-api-key) and add it to your `.env` file.
 
 ### Installation
 1. Clone the repository:
@@ -33,7 +33,7 @@ This project is an automated trading bot built to trade Solana-based tokens list
     ```
     node src/bot.js
     ```
-    
+
 ### How It Works
 - The bot fetches new token launches from Pump.fun and filters them based on:
   - Market cap between 10k and 20k SOL.
