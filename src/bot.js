@@ -1,8 +1,11 @@
 require('dotenv').config();
+const fs = require('fs'); // ✅ File system for writing CSV logs
+const path = './trades.csv'; // ✅ File path for the trade log
 const axios = require('axios');
 const WebSocket = require('ws');
 const { Connection } = require('@solana/web3.js');
 const BigNumber = require('bignumber.js'); // ✅ Precision library
+
 
 // ================================
 // RPC Connection
@@ -53,6 +56,8 @@ ws.on('message', async (data) => {
           return;
         }
 
+        logTrade("BUY", parsedData.name, parsedData.mint, buyAmount, buyPrice, 0, 0, 0); // Sell price, profitLoss, percentageGain = 0 at buy time
+
         // ✅ Store trade details for later profit/loss calculation
         tradeHistory[parsedData.mint] = {
           name: parsedData.name,
@@ -92,14 +97,12 @@ ws.on('message', async (data) => {
             return;
           }
 
-          // ✅ FIX: Use BigNumber for precise profit/loss calculation
-          const profitLoss = token.latestPrice.minus(token.buyPrice).times(token.buyAmount).toFixed(10);
-
-          // ✅ Calculate Percentage Gain/Loss
-          const percentageGain = token.latestPrice.minus(token.buyPrice).dividedBy(token.buyPrice).times(100).toFixed(2);
+          const profitLoss = new BigNumber(token.latestPrice).minus(token.buyPrice).times(token.buyAmount);
+          const percentageGain = new BigNumber(token.latestPrice).minus(token.buyPrice).dividedBy(token.buyPrice).times(100);
 
           console.log(`💰 Token: ${token.name} | Simulated Profit/Loss: ${profitLoss} SOL (${percentageGain}% gain/loss) after 30 seconds.`);
           //console.log(`🔄 Simulating sell of ${token.buyAmount.toFixed(6)} SOL for ${token.name}.`);
+          logTrade("SELL", token.name, token.mint, token.buyAmount, token.buyPrice, token.latestPrice, profitLoss, percentageGain);
 
           // ✅ Unsubscribe from trade updates after selling
           ws.send(JSON.stringify({
@@ -143,3 +146,18 @@ ws.on('close', () => {
 ws.on('error', (error) => {
   console.error("WebSocket error:", JSON.stringify(error, null, 2));
 });
+
+// ✅ Function to log trades to CSV
+function logTrade(type, name, mint, solAmount, buyPrice, sellPrice, profitLoss, percentageGain) {
+  const timestamp = new Date().toISOString(); // Current time in readable format
+  const row = `${timestamp},${type},${name},${mint},${solAmount.toFixed(6)},${buyPrice.toFixed(10)},${sellPrice.toFixed(10)},${profitLoss.toFixed(10)},${percentageGain.toFixed(2)}%\n`;
+
+  // ✅ If file does not exist, create with headers
+  if (!fs.existsSync(path)) {
+      const headers = "Timestamp,Type,Token Name,Mint Address,SOL Amount,Buy Price (SOL),Sell Price (SOL),Profit/Loss (SOL),% Gain/Loss\n";
+      fs.writeFileSync(path, headers, 'utf8');
+  }
+
+  // ✅ Append trade log to the file
+  fs.appendFileSync(path, row, 'utf8');
+}
